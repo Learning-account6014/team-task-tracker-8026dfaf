@@ -1,17 +1,15 @@
 import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { getTasks, getUsers } from "@/lib/store";
-import { TaskTable } from "@/components/TaskTable";
+import { KanbanBoard } from "@/components/KanbanBoard";
 import { StatsCards } from "@/components/StatsCards";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClipboardList, LogOut } from "lucide-react";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -23,7 +21,6 @@ export default function Dashboard() {
   const _ = refreshKey; // trigger re-render
 
   const visibleTasks = isAdmin ? allTasks : allTasks.filter((t) => t.assigneeId === user.id);
-  const filteredTasks = statusFilter === "all" ? visibleTasks : visibleTasks.filter((t) => t.status === statusFilter);
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,17 +60,6 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-36 h-9">
-                <SelectValue placeholder="Filter" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="todo">To Do</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
-              </SelectContent>
-            </Select>
             {isAdmin && <CreateTaskDialog onCreated={refresh} />}
           </div>
         </div>
@@ -81,8 +67,8 @@ export default function Dashboard() {
         {/* Stats */}
         <StatsCards tasks={visibleTasks} />
 
-        {/* Task Table */}
-        <TaskTable tasks={filteredTasks} onRefresh={refresh} />
+        {/* Kanban Board */}
+        <KanbanBoard tasks={visibleTasks} onRefresh={refresh} />
       </main>
     </div>
   );
