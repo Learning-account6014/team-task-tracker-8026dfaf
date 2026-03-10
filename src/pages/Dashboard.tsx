@@ -4,6 +4,7 @@ import { getTasks, getUsers } from "@/lib/store";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { StatsCards } from "@/components/StatsCards";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
+import { ManageTeamDialog } from "@/components/ManageTeamDialog";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, LogOut } from "lucide-react";
 
@@ -60,6 +61,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && <ManageTeamDialog onChanged={refresh} />}
             {isAdmin && <CreateTaskDialog onCreated={refresh} />}
           </div>
         </div>
