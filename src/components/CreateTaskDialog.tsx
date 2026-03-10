@@ -26,7 +26,7 @@ export function CreateTaskDialog({ onCreated }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    addTask({ title, description, status: "todo", priority, assigneeId, createdBy: user.id });
+    addTask({ title, description, status: "todo", priority, assigneeId, createdBy: user.id, comments: [] });
     setTitle("");
     setDescription("");
     setAssigneeId("");

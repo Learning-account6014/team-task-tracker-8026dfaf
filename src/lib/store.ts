@@ -9,6 +9,14 @@ export interface User {
   role: Role;
 }
 
+export interface Comment {
+  id: string;
+  taskId: string;
+  userId: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -19,6 +27,7 @@ export interface Task {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  comments: Comment[];
 }
 
 const USERS_KEY = "tasktracker_users";
@@ -39,11 +48,11 @@ const defaultUsers: User[] = [
 ];
 
 const defaultTasks: Task[] = [
-  { id: "t1", title: "Design homepage mockup", description: "Create wireframes and high-fidelity mockups for the new homepage", status: "in_progress", priority: "high", assigneeId: "2", createdBy: "1", createdAt: "2026-03-01", updatedAt: "2026-03-04" },
-  { id: "t2", title: "Fix login bug", description: "Users report intermittent login failures on mobile", status: "todo", priority: "high", assigneeId: "3", createdBy: "1", createdAt: "2026-03-02", updatedAt: "2026-03-02" },
-  { id: "t3", title: "Write API documentation", description: "Document all REST endpoints for the v2 API", status: "done", priority: "medium", assigneeId: "4", createdBy: "1", createdAt: "2026-02-28", updatedAt: "2026-03-05" },
-  { id: "t4", title: "Set up CI/CD pipeline", description: "Configure GitHub Actions for automated testing and deployment", status: "in_progress", priority: "medium", assigneeId: "5", createdBy: "1", createdAt: "2026-03-03", updatedAt: "2026-03-05" },
-  { id: "t5", title: "Update dependencies", description: "Audit and update all npm packages to latest stable versions", status: "todo", priority: "low", assigneeId: "6", createdBy: "1", createdAt: "2026-03-04", updatedAt: "2026-03-04" },
+  { id: "t1", title: "Design homepage mockup", description: "Create wireframes and high-fidelity mockups for the new homepage", status: "in_progress", priority: "high", assigneeId: "2", createdBy: "1", createdAt: "2026-03-01", updatedAt: "2026-03-04", comments: [] },
+  { id: "t2", title: "Fix login bug", description: "Users report intermittent login failures on mobile", status: "todo", priority: "high", assigneeId: "3", createdBy: "1", createdAt: "2026-03-02", updatedAt: "2026-03-02", comments: [] },
+  { id: "t3", title: "Write API documentation", description: "Document all REST endpoints for the v2 API", status: "done", priority: "medium", assigneeId: "4", createdBy: "1", createdAt: "2026-02-28", updatedAt: "2026-03-05", comments: [] },
+  { id: "t4", title: "Set up CI/CD pipeline", description: "Configure GitHub Actions for automated testing and deployment", status: "in_progress", priority: "medium", assigneeId: "5", createdBy: "1", createdAt: "2026-03-03", updatedAt: "2026-03-05", comments: [] },
+  { id: "t5", title: "Update dependencies", description: "Audit and update all npm packages to latest stable versions", status: "todo", priority: "low", assigneeId: "6", createdBy: "1", createdAt: "2026-03-04", updatedAt: "2026-03-04", comments: [] },
 ];
 
 function load<T>(key: string, fallback: T): T {
@@ -106,5 +115,34 @@ export function updateTaskStatus(taskId: string, status: TaskStatus) {
 export function deleteTask(taskId: string) {
   const tasks = getTasks().filter((t) => t.id !== taskId);
   saveTasks(tasks);
+  return tasks;
+}
+
+export function updateTaskPriority(taskId: string, priority: Priority) {
+  const tasks = getTasks();
+  const idx = tasks.findIndex((t) => t.id === taskId);
+  if (idx !== -1) {
+    tasks[idx].priority = priority;
+    tasks[idx].updatedAt = new Date().toISOString().split("T")[0];
+    saveTasks(tasks);
+  }
+  return tasks;
+}
+
+export function addComment(taskId: string, userId: string, text: string) {
+  const tasks = getTasks();
+  const idx = tasks.findIndex((t) => t.id === taskId);
+  if (idx !== -1) {
+    if (!tasks[idx].comments) tasks[idx].comments = [];
+    tasks[idx].comments.push({
+      id: "c" + Date.now(),
+      taskId,
+      userId,
+      text,
+      createdAt: new Date().toISOString(),
+    });
+    tasks[idx].updatedAt = new Date().toISOString().split("T")[0];
+    saveTasks(tasks);
+  }
   return tasks;
 }
