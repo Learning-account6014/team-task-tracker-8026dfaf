@@ -9,6 +9,14 @@ export interface User {
   role: Role;
 }
 
+export interface Comment {
+  id: string;
+  taskId: string;
+  userId: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -19,6 +27,7 @@ export interface Task {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  comments: Comment[];
 }
 
 const USERS_KEY = "tasktracker_users";
