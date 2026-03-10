@@ -61,6 +61,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {isAdmin && <ManageTeamDialog onChanged={refresh} />}
             {isAdmin && <CreateTaskDialog onCreated={refresh} />}
           </div>
         </div>

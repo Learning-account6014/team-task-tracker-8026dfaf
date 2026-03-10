@@ -129,6 +129,29 @@ export function updateTaskPriority(taskId: string, priority: Priority) {
   return tasks;
 }
 
+export function addUser(name: string, email: string, role: Role = "employee"): string | null {
+  const users = getUsers();
+  if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
+    return "A user with this email already exists";
+  }
+  users.push({ id: "u" + Date.now(), name, email, role });
+  save(USERS_KEY, users);
+  return null;
+}
+
+export function removeUser(userId: string): string | null {
+  const users = getUsers();
+  const user = users.find((u) => u.id === userId);
+  if (!user) return "User not found";
+  if (user.role === "admin") return "Cannot remove an admin";
+  save(USERS_KEY, users.filter((u) => u.id !== userId));
+  // Unassign their tasks
+  const tasks = getTasks();
+  const updated = tasks.filter((t) => t.assigneeId !== userId);
+  saveTasks(updated);
+  return null;
+}
+
 export function addComment(taskId: string, userId: string, text: string) {
   const tasks = getTasks();
   const idx = tasks.findIndex((t) => t.id === taskId);
