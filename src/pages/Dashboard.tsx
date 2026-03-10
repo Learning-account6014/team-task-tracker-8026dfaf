@@ -4,6 +4,7 @@ import { getTasks, getUsers } from "@/lib/store";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { StatsCards } from "@/components/StatsCards";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
+import { ManageTeamDialog } from "@/components/ManageTeamDialog";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, LogOut } from "lucide-react";
 
