@@ -117,3 +117,32 @@ export function deleteTask(taskId: string) {
   saveTasks(tasks);
   return tasks;
 }
+
+export function updateTaskPriority(taskId: string, priority: Priority) {
+  const tasks = getTasks();
+  const idx = tasks.findIndex((t) => t.id === taskId);
+  if (idx !== -1) {
+    tasks[idx].priority = priority;
+    tasks[idx].updatedAt = new Date().toISOString().split("T")[0];
+    saveTasks(tasks);
+  }
+  return tasks;
+}
+
+export function addComment(taskId: string, userId: string, text: string) {
+  const tasks = getTasks();
+  const idx = tasks.findIndex((t) => t.id === taskId);
+  if (idx !== -1) {
+    if (!tasks[idx].comments) tasks[idx].comments = [];
+    tasks[idx].comments.push({
+      id: "c" + Date.now(),
+      taskId,
+      userId,
+      text,
+      createdAt: new Date().toISOString(),
+    });
+    tasks[idx].updatedAt = new Date().toISOString().split("T")[0];
+    saveTasks(tasks);
+  }
+  return tasks;
+}
