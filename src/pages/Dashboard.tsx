@@ -6,7 +6,7 @@ import { StatsCards } from "@/components/StatsCards";
 import { CreateTaskDialog } from "@/components/CreateTaskDialog";
 import { ManageTeamDialog } from "@/components/ManageTeamDialog";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
