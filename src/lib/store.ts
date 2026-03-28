@@ -6,6 +6,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password: string;
   role: Role;
 }
 
@@ -35,16 +36,16 @@ const TASKS_KEY = "tasktracker_tasks";
 const SESSION_KEY = "tasktracker_session";
 
 const defaultUsers: User[] = [
-  { id: "1", name: "Admin User", email: "admin@company.com", role: "admin" },
-  { id: "2", name: "Alice Johnson", email: "alice@company.com", role: "employee" },
-  { id: "3", name: "Bob Smith", email: "bob@company.com", role: "employee" },
-  { id: "4", name: "Carol Williams", email: "carol@company.com", role: "employee" },
-  { id: "5", name: "David Brown", email: "david@company.com", role: "employee" },
-  { id: "6", name: "Eve Davis", email: "eve@company.com", role: "employee" },
-  { id: "7", name: "Frank Miller", email: "frank@company.com", role: "employee" },
-  { id: "8", name: "Grace Wilson", email: "grace@company.com", role: "employee" },
-  { id: "9", name: "Henry Moore", email: "henry@company.com", role: "employee" },
-  { id: "10", name: "Ivy Taylor", email: "ivy@company.com", role: "employee" },
+  { id: "1", name: "Admin User", email: "admin@company.com", password: "admin123", role: "admin" },
+  { id: "2", name: "Alice Johnson", email: "alice@company.com", password: "alice123", role: "employee" },
+  { id: "3", name: "Bob Smith", email: "bob@company.com", password: "bob123", role: "employee" },
+  { id: "4", name: "Carol Williams", email: "carol@company.com", password: "carol123", role: "employee" },
+  { id: "5", name: "David Brown", email: "david@company.com", password: "david123", role: "employee" },
+  { id: "6", name: "Eve Davis", email: "eve@company.com", password: "eve123", role: "employee" },
+  { id: "7", name: "Frank Miller", email: "frank@company.com", password: "frank123", role: "employee" },
+  { id: "8", name: "Grace Wilson", email: "grace@company.com", password: "grace123", role: "employee" },
+  { id: "9", name: "Henry Moore", email: "henry@company.com", password: "henry123", role: "employee" },
+  { id: "10", name: "Ivy Taylor", email: "ivy@company.com", password: "ivy123", role: "employee" },
 ];
 
 const defaultTasks: Task[] = [
@@ -129,12 +130,12 @@ export function updateTaskPriority(taskId: string, priority: Priority) {
   return tasks;
 }
 
-export function addUser(name: string, email: string, role: Role = "employee"): string | null {
+export function addUser(name: string, email: string, password: string, role: Role = "employee"): string | null {
   const users = getUsers();
   if (users.find((u) => u.email.toLowerCase() === email.toLowerCase())) {
     return "A user with this email already exists";
   }
-  users.push({ id: "u" + Date.now(), name, email, role });
+  users.push({ id: "u" + Date.now(), name, email, password, role });
   save(USERS_KEY, users);
   return null;
 }
