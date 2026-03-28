@@ -70,7 +70,13 @@ function save<T>(key: string, data: T) {
 }
 
 export function getUsers(): User[] {
-  return load(USERS_KEY, defaultUsers);
+  const users = load(USERS_KEY, defaultUsers);
+  // Migrate: if stored users lack password field, reset to defaults
+  if (users.length > 0 && !users[0].password) {
+    save(USERS_KEY, defaultUsers);
+    return defaultUsers;
+  }
+  return users;
 }
 
 export function getTasks(): Task[] {
