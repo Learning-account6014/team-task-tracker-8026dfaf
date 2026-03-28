@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getUsers, addUser, removeUser } from "@/lib/store";
-import { Users, UserPlus, Trash2 } from "lucide-react";
+import { Users, UserPlus, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Props {
@@ -14,6 +14,8 @@ export function ManageTeamDialog({ onChanged }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -24,14 +26,15 @@ export function ManageTeamDialog({ onChanged }: Props) {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    const err = addUser(name.trim(), email.trim());
+    if (!name.trim() || !email.trim() || !password.trim()) return;
+    const err = addUser(name.trim(), email.trim(), password.trim());
     if (err) {
       toast({ title: "Error", description: err, variant: "destructive" });
     } else {
       toast({ title: "Member added", description: `${name.trim()} has been added to the team.` });
       setName("");
       setEmail("");
+      setPassword("");
       setRefreshKey((k) => k + 1);
       onChanged();
     }
@@ -79,6 +82,23 @@ export function ManageTeamDialog({ onChanged }: Props) {
               required
               className="flex-1"
             />
+          </div>
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
           <Button type="submit" size="sm" className="gap-2 w-fit">
             <UserPlus className="w-4 h-4" />
