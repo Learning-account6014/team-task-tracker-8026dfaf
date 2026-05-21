@@ -3,8 +3,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PriorityBadge } from "@/components/StatusBadge";
 import { Trash2, MessageSquare, GripVertical } from "lucide-react";
-import { getUsers, updateTaskStatus, deleteTask, type Task, type TaskStatus } from "@/lib/store";
+import { updateTaskStatus, deleteTask, type Task, type TaskStatus } from "@/lib/store";
 import { useAuth } from "@/hooks/useAuth";
+import { useData } from "@/contexts/DataContext";
 import { TaskDetailDialog } from "@/components/TaskDetailDialog";
 
 const columns: { status: TaskStatus; label: string; colorClass: string }[] = [
@@ -15,12 +16,11 @@ const columns: { status: TaskStatus; label: string; colorClass: string }[] = [
 
 interface Props {
   tasks: Task[];
-  onRefresh: () => void;
 }
 
-export function KanbanBoard({ tasks, onRefresh }: Props) {
+export function KanbanBoard({ tasks }: Props) {
   const { user } = useAuth();
-  const users = getUsers();
+  const { users, refresh } = useData();
   const isAdmin = user?.role === "admin";
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
@@ -29,23 +29,21 @@ export function KanbanBoard({ tasks, onRefresh }: Props) {
 
   const getName = (id: string) => users.find((u) => u.id === id)?.name ?? "Unknown";
 
-  const canDrag = (task: Task) => isAdmin || task.assigneeId === user?.id;
+  const canDrag = (task: Task) => isAdmin || task.assigneeId === user?.id || task.createdBy === user?.id;
+  const canDelete = (task: Task) => isAdmin || task.createdBy === user?.id;
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     setDraggedTaskId(taskId);
     e.dataTransfer.effectAllowed = "move";
   };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
-
   const handleDragEnter = (status: TaskStatus) => {
     dragCounter.current[status] = (dragCounter.current[status] || 0) + 1;
     setDragOverColumn(status);
   };
-
   const handleDragLeave = (status: TaskStatus) => {
     dragCounter.current[status] = (dragCounter.current[status] || 0) - 1;
     if (dragCounter.current[status] <= 0) {
@@ -53,33 +51,22 @@ export function KanbanBoard({ tasks, onRefresh }: Props) {
       if (dragOverColumn === status) setDragOverColumn(null);
     }
   };
-
-  const handleDrop = (e: React.DragEvent, status: TaskStatus) => {
+  const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
     dragCounter.current = {};
     setDragOverColumn(null);
     if (draggedTaskId) {
       const task = tasks.find((t) => t.id === draggedTaskId);
       if (task && task.status !== status && canDrag(task)) {
-        updateTaskStatus(draggedTaskId, status);
-        onRefresh();
+        await updateTaskStatus(draggedTaskId, status);
+        refresh();
       }
     }
     setDraggedTaskId(null);
   };
+  const handleDragEnd = () => { setDraggedTaskId(null); setDragOverColumn(null); dragCounter.current = {}; };
+  const handleDelete = async (taskId: string) => { await deleteTask(taskId); refresh(); };
 
-  const handleDragEnd = () => {
-    setDraggedTaskId(null);
-    setDragOverColumn(null);
-    dragCounter.current = {};
-  };
-
-  const handleDelete = (taskId: string) => {
-    deleteTask(taskId);
-    onRefresh();
-  };
-
-  // Keep selectedTask in sync with refreshed tasks
   const currentSelectedTask = selectedTask ? tasks.find((t) => t.id === selectedTask.id) ?? null : null;
 
   if (tasks.length === 0) {
@@ -97,7 +84,6 @@ export function KanbanBoard({ tasks, onRefresh }: Props) {
         {columns.map((col) => {
           const columnTasks = tasks.filter((t) => t.status === col.status);
           const isOver = dragOverColumn === col.status;
-
           return (
             <div
               key={col.status}
@@ -113,7 +99,6 @@ export function KanbanBoard({ tasks, onRefresh }: Props) {
                   {columnTasks.length}
                 </span>
               </div>
-
               <div className="space-y-2">
                 {columnTasks.map((task) => (
                   <Card
@@ -145,8 +130,9 @@ export function KanbanBoard({ tasks, onRefresh }: Props) {
                           </div>
                           <span className="text-xs text-muted-foreground">{getName(task.assigneeId).split(" ")[0]}</span>
                         </div>
+                        <p className="text-[10px] text-muted-foreground mt-1">By: {getName(task.createdBy)}</p>
                       </div>
-                      {isAdmin && (
+                      {canDelete(task) && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -169,7 +155,6 @@ export function KanbanBoard({ tasks, onRefresh }: Props) {
         task={currentSelectedTask}
         open={!!currentSelectedTask}
         onOpenChange={(open) => { if (!open) setSelectedTask(null); }}
-        onRefresh={onRefresh}
       />
     </>
   );

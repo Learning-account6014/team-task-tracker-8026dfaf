@@ -3,30 +3,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
-import { getUsers, updateTaskStatus, deleteTask, type Task, type TaskStatus } from "@/lib/store";
+import { updateTaskStatus, deleteTask, type Task, type TaskStatus } from "@/lib/store";
 import { useAuth } from "@/hooks/useAuth";
+import { useData } from "@/contexts/DataContext";
 
-interface Props {
-  tasks: Task[];
-  onRefresh: () => void;
-}
+interface Props { tasks: Task[]; }
 
-export function TaskTable({ tasks, onRefresh }: Props) {
+export function TaskTable({ tasks }: Props) {
   const { user } = useAuth();
-  const users = getUsers();
+  const { users, refresh } = useData();
   const isAdmin = user?.role === "admin";
-
   const getName = (id: string) => users.find((u) => u.id === id)?.name ?? "Unknown";
 
-  const handleStatusChange = (taskId: string, status: TaskStatus) => {
-    updateTaskStatus(taskId, status);
-    onRefresh();
-  };
+  const canEdit = (task: Task) => isAdmin || task.assigneeId === user?.id || task.createdBy === user?.id;
+  const canDelete = (task: Task) => isAdmin || task.createdBy === user?.id;
 
-  const handleDelete = (taskId: string) => {
-    deleteTask(taskId);
-    onRefresh();
-  };
+  const handleStatusChange = async (taskId: string, status: TaskStatus) => { await updateTaskStatus(taskId, status); refresh(); };
+  const handleDelete = async (taskId: string) => { await deleteTask(taskId); refresh(); };
 
   if (tasks.length === 0) {
     return (
@@ -43,11 +36,12 @@ export function TaskTable({ tasks, onRefresh }: Props) {
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead className="font-semibold">Task</TableHead>
-            <TableHead className="font-semibold">Assignee</TableHead>
+            <TableHead className="font-semibold">Assigned to</TableHead>
+            <TableHead className="font-semibold">Assigned by</TableHead>
             <TableHead className="font-semibold">Priority</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Updated</TableHead>
-            {isAdmin && <TableHead className="w-12" />}
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -60,31 +54,28 @@ export function TaskTable({ tasks, onRefresh }: Props) {
                 </div>
               </TableCell>
               <TableCell className="text-sm">{getName(task.assigneeId)}</TableCell>
+              <TableCell className="text-sm">{getName(task.createdBy)}</TableCell>
               <TableCell><PriorityBadge priority={task.priority} /></TableCell>
               <TableCell>
-                {(isAdmin || task.assigneeId === user?.id) ? (
+                {canEdit(task) ? (
                   <Select value={task.status} onValueChange={(v) => handleStatusChange(task.id, v as TaskStatus)}>
-                    <SelectTrigger className="w-32 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="todo">To Do</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="done">Done</SelectItem>
                     </SelectContent>
                   </Select>
-                ) : (
-                  <StatusBadge status={task.status} />
-                )}
+                ) : <StatusBadge status={task.status} />}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">{task.updatedAt}</TableCell>
-              {isAdmin && (
-                <TableCell>
+              <TableCell>
+                {canDelete(task) && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(task.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
-                </TableCell>
-              )}
+                )}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
