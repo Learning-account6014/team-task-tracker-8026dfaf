@@ -6,33 +6,40 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
-import { getUsers, addTask, type Priority } from "@/lib/store";
+import { createTask, type Priority } from "@/lib/store";
 import { useAuth } from "@/hooks/useAuth";
+import { useData } from "@/contexts/DataContext";
+import { useToast } from "@/hooks/use-toast";
 
-interface Props {
-  onCreated: () => void;
-}
-
-export function CreateTaskDialog({ onCreated }: Props) {
+export function CreateTaskDialog() {
   const { user } = useAuth();
+  const { users, refresh } = useData();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [busy, setBusy] = useState(false);
 
-  const employees = getUsers().filter((u) => u.role === "employee");
+  // Managers and employees can both receive tasks; admin too
+  const assignees = users.filter((u) => u.role !== "admin" || u.id !== user?.id);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    addTask({ title, description, status: "todo", priority, assigneeId, createdBy: user.id, comments: [] });
-    setTitle("");
-    setDescription("");
-    setAssigneeId("");
-    setPriority("medium");
-    setOpen(false);
-    onCreated();
+    setBusy(true);
+    try {
+      await createTask({ title, description, priority, assigneeId, createdBy: user.id });
+      toast({ title: "Task created" });
+      setTitle(""); setDescription(""); setAssigneeId(""); setPriority("medium");
+      setOpen(false);
+      refresh();
+    } catch (err) {
+      toast({ title: "Error", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -61,8 +68,10 @@ export function CreateTaskDialog({ onCreated }: Props) {
               <Select value={assigneeId} onValueChange={setAssigneeId} required>
                 <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
-                  {employees.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                  {assignees.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} <span className="text-xs text-muted-foreground">({u.role})</span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -79,7 +88,9 @@ export function CreateTaskDialog({ onCreated }: Props) {
               </Select>
             </div>
           </div>
-          <Button type="submit" className="w-full font-semibold">Create Task</Button>
+          <Button type="submit" className="w-full font-semibold" disabled={busy}>
+            {busy ? "Creating..." : "Create Task"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
