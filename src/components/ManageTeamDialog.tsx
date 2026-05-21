@@ -2,54 +2,56 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getUsers, addUser, removeUser } from "@/lib/store";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { adminCreateUser, adminDeleteUser, type Role } from "@/lib/store";
+import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Users, UserPlus, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Props {
-  onChanged: () => void;
-}
-
-export function ManageTeamDialog({ onChanged }: Props) {
+export function ManageTeamDialog() {
+  const { user } = useAuth();
+  const { users, refresh } = useData();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("employee");
   const [showPassword, setShowPassword] = useState(false);
+  const [busy, setBusy] = useState(false);
   const { toast } = useToast();
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const users = getUsers();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _ = refreshKey;
-  const employees = users.filter((u) => u.role === "employee");
+  const team = users.filter((u) => u.id !== user?.id);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !password.trim()) return;
-    const err = addUser(name.trim(), email.trim(), password.trim());
+    setBusy(true);
+    const err = await adminCreateUser(name.trim(), email.trim(), password, role);
+    setBusy(false);
     if (err) {
       toast({ title: "Error", description: err, variant: "destructive" });
     } else {
-      toast({ title: "Member added", description: `${name.trim()} has been added to the team.` });
-      setName("");
-      setEmail("");
-      setPassword("");
-      setRefreshKey((k) => k + 1);
-      onChanged();
+      toast({ title: "Member added", description: `${name.trim()} has been added as ${role}.` });
+      setName(""); setEmail(""); setPassword(""); setRole("employee");
+      refresh();
     }
   };
 
-  const handleRemove = (userId: string, userName: string) => {
-    const err = removeUser(userId);
-    if (err) {
-      toast({ title: "Error", description: err, variant: "destructive" });
-    } else {
+  const handleRemove = async (userId: string, userName: string) => {
+    const err = await adminDeleteUser(userId);
+    if (err) toast({ title: "Error", description: err, variant: "destructive" });
+    else {
       toast({ title: "Member removed", description: `${userName} has been removed.` });
-      setRefreshKey((k) => k + 1);
-      onChanged();
+      refresh();
     }
   };
+
+  const roleColor = (r: Role) =>
+    r === "admin" ? "bg-destructive/15 text-destructive" :
+    r === "manager" ? "bg-info/15 text-info" :
+    "bg-muted text-muted-foreground";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -67,55 +69,50 @@ export function ManageTeamDialog({ onChanged }: Props) {
         <form onSubmit={handleAdd} className="flex flex-col gap-3">
           <p className="text-sm font-medium text-foreground">Add new member</p>
           <div className="flex gap-2">
-            <Input
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="flex-1"
-            />
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="flex-1"
-            />
+            <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} required className="flex-1" />
+            <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required className="flex-1" />
           </div>
-          <div className="relative">
-            <Input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="pr-10"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password (min 6)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="pr-10"
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employee">Employee</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Button type="submit" size="sm" className="gap-2 w-fit">
+          <Button type="submit" size="sm" className="gap-2 w-fit" disabled={busy}>
             <UserPlus className="w-4 h-4" />
-            Add Member
+            {busy ? "Adding..." : "Add Member"}
           </Button>
         </form>
 
         <div className="border-t border-border pt-3 mt-1">
-          <p className="text-sm font-medium text-foreground mb-2">
-            Team members ({employees.length})
-          </p>
+          <p className="text-sm font-medium text-foreground mb-2">Team members ({team.length})</p>
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {employees.map((u) => (
+            {team.map((u) => (
               <div key={u.id} className="flex items-center justify-between p-2 rounded-md bg-muted">
-                <div>
-                  <p className="text-sm font-medium">{u.name}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{u.name}</p>
+                    <Badge variant="secondary" className={`text-[10px] uppercase ${roleColor(u.role)}`}>{u.role}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                 </div>
                 <Button
                   variant="ghost"
